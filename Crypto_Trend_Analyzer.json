@@ -1,0 +1,199 @@
+{
+  "name": "Crypto Trend Analyzer",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://api.coingecko.com/api/v3/coins/markets",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "vs_currency",
+              "value": "usd"
+            },
+            {
+              "name": "ids ",
+              "value": "bitcoin,ethereum,solana,cardano,polkadot"
+            },
+            {
+              "name": "order",
+              "value": "market_cap_desc"
+            },
+            {
+              "name": "per_page",
+              "value": "5"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            },
+            {
+              "name": "price_change_percentage",
+              "value": "24h,7d"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        100,
+        -200
+      ],
+      "id": "f460de8b-e3d8-4a1d-b9cd-a73b9d92f1f0",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the data from the HTTP Request node\nconst items = $input.all();\nconst processedResults = [];\n\n// Process each item\nfor (const item of items) {\n  const cryptoData = item.json;\n  \n  // Check if cryptoData is an array or single object\n  const coins = Array.isArray(cryptoData) ? cryptoData : [cryptoData];\n  \n  // Process each coin\n  for (const coin of coins) {\n    const analysis = {\n      name: coin.name || 'Unknown',\n      symbol: (coin.symbol || 'unknown').toUpperCase(),\n      current_price: coin.current_price || 0,\n      market_cap: coin.market_cap || 0,\n      price_change_24h: coin.price_change_percentage_24h || 0,\n      price_change_7d: coin.price_change_percentage_7d_in_currency || 0,\n      volume_24h: coin.total_volume || 0,\n      \n      // Trend analysis\n      trend_24h: (coin.price_change_percentage_24h || 0) > 0 ? 'UP' : 'DOWN',\n      trend_7d: (coin.price_change_percentage_7d_in_currency || 0) > 0 ? 'UP' : 'DOWN',\n      \n      // Trading signal\n      signal: 'HOLD',\n      timestamp: new Date().toISOString()\n    };\n    \n    // Simple buy/sell logic\n    const change24h = coin.price_change_percentage_24h || 0;\n    const change7d = coin.price_change_percentage_7d_in_currency || 0;\n    \n    if (change24h > 5 && change7d > 10) {\n      analysis.signal = 'BUY';\n      analysis.reason = 'Strong upward trend';\n    } else if (change24h < -5 && change7d < -10) {\n      analysis.signal = 'SELL';\n      analysis.reason = 'Strong downward trend';\n    } else {\n      analysis.reason = 'No clear signal';\n    }\n    \n    processedResults.push(analysis);\n  }\n}\n\n// Return the results in the format n8n expects\nreturn processedResults.map(result => ({ json: result }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        340,
+        -200
+      ],
+      "id": "3a266011-7086-4e05-93d8-3591f419e02c",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "62bcb4fe-0430-4b40-a613-9b5b46c51897",
+              "leftValue": "={{ $json.signal }}",
+              "rightValue": "HOLD",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        380,
+        160
+      ],
+      "id": "070ea750-e1ef-4f35-b408-8d7680d4ca2d",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "fromEmail": "malikahmad6666666@gmail.com",
+        "toEmail": "malikahmadrasheed53@gmail.com",
+        "subject": "=Crypto Alert: {{ $json.signal }} Signal for {{ $json.name }}",
+        "emailFormat": "text",
+        "text": "=🚨 CRYPTO ALERT 🚨\n\nSignal: {{ $json.signal }}\nCrypto: {{ $json.name }} ({{ $json.symbol }})\nCurrent Price: ${{ $json.current_price }}\n24h Change: {{ $json.price_change_24h }}%\n7d Change: {{ $json.price_change_7d }}%\nReason: {{ $json.reason }}\n\nTime: {{ $json.timestamp }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        720,
+        180
+      ],
+      "id": "ac158286-4d1f-4ea6-a74f-54833cb4dd8f",
+      "name": "Send Email",
+      "webhookId": "bf279995-10db-4790-a091-c63bb881cbfd",
+      "credentials": {
+        "smtp": {
+          "id": "pyz1mGLvpDebgWf7",
+          "name": "SMTP account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 0
+            },
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -120,
+        -200
+      ],
+      "id": "c709adec-302c-4ba7-877e-495c56728e47",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6570c4a4-e7e9-4c66-a873-c1bee4008182",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7ad02c434fdc34211fe58e3570a88866c6d89c760a13a540f9139ecac375247e"
+  },
+  "id": "9au6Tlbgdr7P7deE",
+  "tags": []
+}
