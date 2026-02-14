@@ -4,7 +4,7 @@ An AI-powered crypto monitoring agent built using **n8n**, **OpenAI**, **Gmail S
 
 ---
 
-## 🚀 Features
+## 🚀 Features in Crytpo Analyzer
 
 - ⏰ **Hourly Automation** using Schedule Trigger
 - 📉 **Real-Time Crypto Data** via HTTP Request to CoinGecko
